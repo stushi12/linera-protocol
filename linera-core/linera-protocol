@@ -1,0 +1,34 @@
+git apply << 'EOF'
+diff --git a/linera-core/src/accounting.rs b/linera-core/src/accounting.rs
+new file mode 100644
+--- /dev/null
++++ b/linera-core/src/accounting.rs
+@@ -0,0 +1,50 @@
++/// Accounting utilities for handling satoshi (or smallest unit) arithmetic safely.
++/// Prevents integer overflow by using a larger intermediate type.
++pub mod satoshi {
++    /// Maximum valid satoshis in Bitcoin: 21 million BTC
++    /// 21_000_000 * 100_000_000 = 2_100_000_000_000_000 satoshis
++    /// But adapt this limit if Linera has a different max.
++    pub const MAX_SATOSHIS: u128 = 21_000_000_u128 * 100_000_000_u128;
++
++    /// Safely add two satoshi amounts.
++    ///
++    /// Returns `Some(sum)` if no overflow and sum <= `MAX_SATOSHIS`.
++    /// Returns `None` if overflow would occur or sum would exceed max allowed.
++    pub fn safe_add(a: u64, b: u64) -> Option<u64> {
++        let sum128 = (a as u128) + (b as u128);
++        if sum128 > MAX_SATOSHIS {
++            return None;
++        }
++        // `sum128` fits in u64 because MAX_SATOSHIS (2.1e15) < u64::MAX (~1.8e19).
++        Some(sum128 as u64)
++    }
++
++    /// Example: panic if overflow.
++    pub fn add_or_panic(a: u64, b: u64) -> u64 {
++        safe_add(a, b)
++            .expect("satoshi addition overflow: sum exceeds valid range")
++    }
++}
+EOF
